@@ -1,67 +1,64 @@
+import { ContactForm } from './ContactForm/ContactForm';
+import { ContactList } from './ContactList/ContactList';
+import { Filter } from './Filter/Filter';
 
-import { Statistics } from './Statistics/Statistics';
-import { FeedbackOptions } from './FeedbackOptions/FeedbackOptions';
-import { Section } from './Section/Section';
-import { Notification } from './Notification/Notification';
-import { useState } from 'react';
+import css from './App.module.css';
+import { useEffect, useState } from 'react';
 
 export const App = () => {
-  const [good, setGood] = useState(0);
-  const [neutral, setNeutral] = useState(0);
-  const [bad, setBad] = useState(0);
+  const [contacts, setContacts] = useState(
+    JSON.parse(localStorage.getItem('contacts')) || []
+  );
+  const [filter, setFilter] = useState('');
 
-  const handleFeedback = type => {
-    switch (type) {
-      case 'good':
-        setGood(good + 1);
-        break;
-      case 'neutral':
-        setNeutral(neutral + 1);
-        break;
-      case 'bad':
-        setBad(bad + 1);
-        break;
+  useEffect(() => {
+    localStorage.setItem('contacts', JSON.stringify(contacts));
+  }, [contacts]);
 
-      default:
-        break;
+  const handleFilterChange = event => {
+    setFilter(event.target.value);
+  };
+
+  const checkContactExist = name => {
+    return contacts.some(
+      contact => contact.name.toLowerCase() === name.toLowerCase()
+    );
+  };
+
+  const addContact = newContact => {
+    const { name } = newContact;
+
+    if (name.trim() === '') {
+      alert('Please enter a name.');
+      return;
     }
+
+    if (checkContactExist(name)) {
+      alert(
+        'Contact with this name already exists. Please enter a different name.'
+      );
+      return;
+    }
+
+    setContacts(prevState => [...prevState, newContact]);
   };
 
-  const countTotalFeedback = () => {
-    return good + neutral + bad;
+  const deleteContact = id => {
+    setContacts(prevState => prevState.filter(contact => contact.id !== id));
   };
 
-  const countPositiveFeedbackPercentage = () => {
-    const totalFeedback = countTotalFeedback();
-    return ((good / totalFeedback) * 100).toFixed(0) || 0;
-  };
-
-  const totalFeedback = countTotalFeedback();
-  const showStatistics = totalFeedback > 0;
-  const noFeedbackMessage = 'There is no feedback';
+  const filteredContacts = contacts.filter(contact =>
+    contact.name.toLowerCase().includes(filter.toLowerCase())
+  );
 
   return (
-    <div>
-      <Section title="Leave your feedback">
-        <FeedbackOptions
-          options={['good', 'neutral', 'bad']}
-          onLeaveFeedback={handleFeedback}
-        />
-      </Section>
+    <div className={css.appContainer}>
+      <h1 className={css.title}>Phonebook</h1>
+      <ContactForm addContact={addContact} />
 
-      <Section title="Statistics">
-        {showStatistics ? (
-          <Statistics
-            good={good}
-            neutral={neutral}
-            bad={bad}
-            totalFeedback={totalFeedback}
-            positiveFeedbackPercentage={countPositiveFeedbackPercentage()}
-          />
-        ) : (
-          <Notification message={noFeedbackMessage} />
-        )}
-      </Section>
+      <h2 className={css.subtitle}>Contacts</h2>
+      <Filter filter={filter} handleFilterChange={handleFilterChange} />
+      <ContactList contacts={filteredContacts} deleteContact={deleteContact} />
     </div>
   );
 };
